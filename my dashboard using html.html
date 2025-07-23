@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grammy Awards Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: linear-gradient(135deg, #dff6ff, #e0f7fa);
+      min-height: 100vh;
+      padding: 40px;
+    }
+    #charts {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 20px;
+    }
+    .chart-container {
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Grammy Awards Interactive Dashboard</h2>
+  <div id="charts">
+    <div class="chart-container"><div id="awardsPerYear"></div></div>
+    <div class="chart-container"><div id="topNominees"></div></div>
+    <div class="chart-container"><div id="awardsByCategory"></div></div>
+    <div class="chart-container"><div id="topWorks"></div></div>
+    <div class="chart-container"><div id="awardTypePie"></div></div>
+  </div>
+
+  <script>
+    // Use RAW GitHub URL for JSON file
+    const fileUrl = "https://raw.githubusercontent.com/Vishalpatel124/My-dashboard-project/main/Grammy_Award_Nominees_and_Winners_1958_2024.json";
+
+    fetch(fileUrl)
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+      })
+      .then(data => generateDashboard(data))
+      .catch(err => {
+        console.error("Failed to fetch data:", err);
+        alert('Failed to load data. Check console for details.');
+      });
+
+    function defaultLayout(title, xRotate = 0, yRotate = 0) {
+      return {
+        title: title,
+        dragmode: 'pan',
+        hovermode: 'closest',
+        margin: { t: 40, l: 80, r: 20, b: 80 },
+        xaxis: { fixedrange: false, tickangle: xRotate, automargin: true },
+        yaxis: { fixedrange: false, tickangle: yRotate, automargin: true },
+        autosize: true
+      };
+    }
+
+    function generateDashboard(data) {
+      const yearCount = {}, nomineeWins = {}, categoryCount = {}, workWins = {}, typeCount = {};
+
+      data.forEach(row => {
+        const year = row.Year;
+        const nominee = row.Nominee;
+        const category = row["Award Name"];
+        const work = row.Work;
+        const type = row["Award Type"];
+
+        yearCount[year] = (yearCount[year] || 0) + 1;
+        if (row.Winner) nomineeWins[nominee] = (nomineeWins[nominee] || 0) + 1;
+        categoryCount[category] = (categoryCount[category] || 0) + 1;
+        if (row.Winner) workWins[work] = (workWins[work] || 0) + 1;
+        typeCount[type] = (typeCount[type] || 0) + 1;
+      });
+
+      Plotly.newPlot('awardsPerYear', [{
+        x: Object.keys(yearCount),
+        y: Object.values(yearCount),
+        type: 'scatter',
+        mode: 'lines+markers',
+        marker: { color: 'blue' }
+      }], defaultLayout('Number of Awards per Year'));
+
+      const topNominees = Object.entries(nomineeWins).sort((a,b) => b[1]-a[1]).slice(0, 10);
+      Plotly.newPlot('topNominees', [{
+        x: topNominees.map(x => x[1]),
+        y: topNominees.map(x => x[0]),
+        type: 'bar',
+        orientation: 'h'
+      }], defaultLayout('Top 10 Nominees by Wins'));
+
+      const categoriesSorted = Object.entries(categoryCount).sort((a,b) => b[1]-a[1]).slice(0, 10);
+      Plotly.newPlot('awardsByCategory', [{
+        x: categoriesSorted.map(x => x[0]),
+        y: categoriesSorted.map(x => x[1]),
+        type: 'bar'
+      }], defaultLayout('Top 10 Award Categories', -45));
+
+      const topWorks = Object.entries(workWins).sort((a,b) => b[1]-a[1]).slice(0, 10);
+      Plotly.newPlot('topWorks', [{
+        x: topWorks.map(x => x[1]),
+        y: topWorks.map(x => x[0]),
+        type: 'bar',
+        orientation: 'h'
+      }], defaultLayout('Top 10 Awarded Works'));
+
+      Plotly.newPlot('awardTypePie', [{
+        labels: Object.keys(typeCount),
+        values: Object.values(typeCount),
+        type: 'pie'
+      }], { title: 'Award Type Distribution' });
+    }
+  </script>
+</body>
+</html>
