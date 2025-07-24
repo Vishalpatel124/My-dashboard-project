@@ -40,7 +40,6 @@
   </div>
 
   <script>
-    // Use RAW GitHub URL for JSON file
     const fileUrl = "https://raw.githubusercontent.com/Vishalpatel124/My-dashboard-project/main/Grammy_Award_Nominees_and_Winners_1958_2024.json";
 
     fetch(fileUrl)
@@ -71,18 +70,44 @@
 
       data.forEach(row => {
         const year = row.Year;
-        const nominee = row.Nominee;
+        const nominee = row.Nominee?.trim();
         const category = row["Award Name"];
-        const work = row.Work;
+        const work = row.Work?.trim();
         const type = row["Award Type"];
 
+        // Awards per year
         yearCount[year] = (yearCount[year] || 0) + 1;
-        if (row.Winner) nomineeWins[nominee] = (nomineeWins[nominee] || 0) + 1;
+
+        // Top nominees (filter out junk)
+        if (
+          row.Winner &&
+          nominee &&
+          nominee.toLowerCase() !== 'various artists' &&
+          nominee.toLowerCase() !== 'various' &&
+          !nominee.toLowerCase().includes('various')
+        ) {
+          nomineeWins[nominee] = (nomineeWins[nominee] || 0) + 1;
+        }
+
+        // Award categories
         categoryCount[category] = (categoryCount[category] || 0) + 1;
-        if (row.Winner) workWins[work] = (workWins[work] || 0) + 1;
+
+        // Top awarded works (filter out junk)
+        if (
+          row.Winner &&
+          work &&
+          work.toLowerCase() !== 'various artists' &&
+          work.toLowerCase() !== 'various' &&
+          !work.toLowerCase().includes('various')
+        ) {
+          workWins[work] = (workWins[work] || 0) + 1;
+        }
+
+        // Award types
         typeCount[type] = (typeCount[type] || 0) + 1;
       });
 
+      // Plot: Awards per Year
       Plotly.newPlot('awardsPerYear', [{
         x: Object.keys(yearCount),
         y: Object.values(yearCount),
@@ -91,14 +116,15 @@
         marker: { color: 'blue' }
       }], defaultLayout('Number of Awards per Year'));
 
+      // Plot: Top Nominees by Wins
       const topNominees = Object.entries(nomineeWins).sort((a,b) => b[1]-a[1]).slice(0, 10);
       Plotly.newPlot('topNominees', [{
-        x: topNominees.map(x => x[1]),
-        y: topNominees.map(x => x[0]),
-        type: 'bar',
-        orientation: 'h'
-      }], defaultLayout('Top 10 Nominees by Wins'));
+        x: topNominees.map(x => x[0]),
+        y: topNominees.map(x => x[1]),
+        type: 'bar'
+      }], defaultLayout('Top 10 Nominees by Wins', -45));
 
+      // Plot: Top Award Categories
       const categoriesSorted = Object.entries(categoryCount).sort((a,b) => b[1]-a[1]).slice(0, 10);
       Plotly.newPlot('awardsByCategory', [{
         x: categoriesSorted.map(x => x[0]),
@@ -106,14 +132,15 @@
         type: 'bar'
       }], defaultLayout('Top 10 Award Categories', -45));
 
+      // Plot: Top Works
       const topWorks = Object.entries(workWins).sort((a,b) => b[1]-a[1]).slice(0, 10);
       Plotly.newPlot('topWorks', [{
-        x: topWorks.map(x => x[1]),
-        y: topWorks.map(x => x[0]),
-        type: 'bar',
-        orientation: 'h'
-      }], defaultLayout('Top 10 Awarded Works'));
+        x: topWorks.map(x => x[0]),
+        y: topWorks.map(x => x[1]),
+        type: 'bar'
+      }], defaultLayout('Top 10 Awarded Works', -45));
 
+      // Plot: Award Type Pie
       Plotly.newPlot('awardTypePie', [{
         labels: Object.keys(typeCount),
         values: Object.values(typeCount),
